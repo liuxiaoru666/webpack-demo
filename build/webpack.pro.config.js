@@ -1,6 +1,7 @@
 const baseConfig = require("./webpack.base.config");
 const { merge } = require("webpack-merge");
 const MiniCssExtractPlugin = require("mini-css-extract-plugin");
+const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 
 const proConfig = {
   mode: "production", //打包被压缩
@@ -19,6 +20,7 @@ const proConfig = {
       filename:"[name].css",
       chunkFilename:"[name].chunk.css"
     }),
+    new OptimizeCSSAssetsPlugin({})
     // new cleanWebpackPlugin(['dist'])
   ],
 };

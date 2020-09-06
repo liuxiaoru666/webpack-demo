@@ -30,7 +30,7 @@
 
 `webpack.config.js`
 
-**指定打包配置文件**
+**自定义打包配置文件**
 
 ```js
 webpack --config build/webpack.dev.con.js
@@ -293,8 +293,9 @@ output: {
 ```
 
 **打包css**
+
 css文件会被打包进js文件，通过MiniCssExtractPlugin插件将css单独打包
-`````js
+```js
 //开发环境配置，
 //注意
 //1、base.config中对css的loader应当移到dev.config
@@ -317,3 +318,108 @@ css文件会被打包进js文件，通过MiniCssExtractPlugin插件将css单独�
   //package.json,不对css文件进行trashaking
    "sideEffects": ["*.css"]
 ```
+
+**压缩css文件**
+
+借助optimize-css-assets-webpack-plugin插件
+```js
+//webpack.pro.config.js
+optimization: {
+    minimizer: [new TerserJSPlugin({}), new OptimizeCSSAssetsPlugin({})],
+  },
+```
+
+
+## 多页面打包配置
+```js
+//入口文件
+ entry: {
+    main: "./src/index.js",
+    sub:'./src/sub.js'
+  }
+
+//新增html 
+//runtime是必须的，vendor是三方库打包文件，
+new htmlwebpackPlugin({
+        template:'index.html',
+        filename:'index.html',
+        chunks:['runtime','vendor','main']
+    }),
+    new htmlwebpackPlugin({
+      template:'sub.html',
+      filename:'sub.html',
+      chunks:['runtime','vendor','sub']
+  }),
+
+
+
+```
+
+## webpack性能优化
+
+**指定loader使用范围**
+
+通过inclue和exclude减少loader编译的文件
+```js
+{
+  test:/\.js$/,
+  loader:'babel-loader',
+  include:path.resolve(__dirname,'../src')
+}
+```
+**减少不必要的插件**
+- css代码开发环境没必要压缩，节省打包时间
+- 保证插件可靠性
+
+**合理配置resolve**
+
+**控制包文件大小**
+
+**DLLPlugin**
+
+把三方库文件第一次打包的时候生成一个文件，再次打包不要去node_modules分析代码，加快打包速度
+
+- 配置一个打包三方模块配置文件，通过全局变量暴露出去，生成一个json映射文件
+```js
+const path = require('path');
+const webpack = require('webpack');
+
+module.exports = {
+    mode:'production',
+    entry:{
+        vendors:['lodash']
+    },
+    output:{
+        filename:'[name].dll.js',
+        path:path.resolve(__dirname,'../dll'),//打包输出位置
+        library:'[name]'
+        // vendor.dll.js中暴露出的全局变量名。
+        // 主要是给DllPlugin中的name使用，
+        // 故这里需要和webpack.DllPlugin中的`name: '[name]_library',`保持一致。
+    },
+    plugins:[
+        new webpack.DllPlugin({
+            name:'[name]',
+            path:path.resolve(__dirname,'../dll/[name].manifest.json')
+        })
+    ]
+}
+```
+- 通过插件把文件添加到html中
+```js
+
+new AddAssetHtmlWewbpackPlugin({
+    filepath:path.resolve(__dirname,'../dll/vendors.dll.js')
+  }),
+
+```
+- 打包时应用dllRreference插件，分析映射文件，直接去全局变量获取
+```js
+new webpack.DllReferencePlugin({
+    manifest:path.resolve(__dirname,'../dll/vendors.manifest.json')
+  })
+
+```
+
+
+

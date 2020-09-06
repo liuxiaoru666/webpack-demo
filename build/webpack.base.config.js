@@ -1,8 +1,11 @@
 const path = require("path");
 const htmlwebpackPlugin = require('html-webpack-plugin');
+const AddAssetHtmlWewbpackPlugin = require('add-asset-html-webpack-plugin');
+const webpack = require('webpack');
 module.exports = {
   entry: {
     main: "./src/index.js",
+    sub:'./src/sub.js'
   },
   module: {
     rules: [
@@ -18,7 +21,7 @@ module.exports = {
       {
         test:/\.js$/,
         loader:'babel-loader',
-        exclude:/node_modules/
+        include:path.resolve(__dirname,'../src')
       }
     ],
   },
@@ -30,8 +33,21 @@ module.exports = {
   },
   plugins:[
     new htmlwebpackPlugin({
-        template:'index.html'
+        template:'index.html',
+        filename:'index.html',
+        chunks:['runtime','vendor','main']
     }),
+    new htmlwebpackPlugin({
+      template:'sub.html',
+      filename:'sub.html',
+      chunks:['runtime','vendor','sub']
+  }),
+  new AddAssetHtmlWewbpackPlugin({
+    filepath:path.resolve(__dirname,'../dll/vendors.dll.js')
+  }),
+  new webpack.DllReferencePlugin({
+    manifest:path.resolve(__dirname,'../dll/vendors.manifest.json')
+  })
   ],
   optimization:{
     usedExports: true,
